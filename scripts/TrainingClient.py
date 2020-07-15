@@ -1,6 +1,6 @@
 import sys
 sys.path.append('src')
-from DQNModel import DQN # A class of creating a deep q-learning model
+from Model.DQNModel import DQN # A class of creating a deep q-learning model
 from MinerEnv import MinerEnv # A class of creating a communication environment between the DQN model and the GameMiner environment (GAME_SOCKET_DUMMY.py)
 from Memory import Memory # A class of creating a batch in order to store experiences for the training process
 
@@ -104,7 +104,7 @@ for episode_i in range(0, N_EPISODE):
 
         
         #Print the training information after the episode
-        print('Episode %d ends. Number of steps is: %d. Accumlated Reward = %.2f. Epsilon = %.2f .Termination code: %d' % (
+        print('Episode %d ends. Number of steps is: %d. Accumulated Reward = %.2f. Epsilon = %.2f .Termination code: %d' % (
             episode_i + 1, step + 1, total_reward, DQNAgent.epsilon, terminate))
         
         #Decreasing the epsilon if the replay starts
