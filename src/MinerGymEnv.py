@@ -41,7 +41,7 @@ class MinerGymEnv(gym.Env):
 
 
     def step(self, action):
-        self.minerEnv.step(action)
+        self.minerEnv.step(str(action))
         self.status = self.minerEnv.get_state()
         reward = self.get_reward()
         ob = self.get_state()
