@@ -9,10 +9,20 @@ Reinforcement learning fsoft's competition
    python scripts/TrainingClient.py
 ```
 
+## Wrap game to openAI enviroment:
+
+
+
+## Visualize :
+
+Create sample code for visualize game:
+
+![viz](docs/samplevid.gif)
+   
 ## Plan :
 
 1. Enviroment :
-   * [ ] Refine enviroment
+   * [x] Refine enviroment : Wrap game to openAI enviroment [sample code](scripts/run_envs.py)
 2. Learning model :
    * [x] Deep Q Network [source](src/Model/DQNModel.py)  [paper](https://arxiv.org/abs/1312.5602)
    - [ ] Double DQN [paper](http://arxiv.org/abs/1509.06461)
