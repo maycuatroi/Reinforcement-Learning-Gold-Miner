@@ -1,5 +1,6 @@
 import sys
 sys.path.append('src')
+from MinerGymEnv import MinerGymEnv
 from Model.DQNModel import DQN # A class of creating a deep q-learning model
 from MinerEnv import MinerEnv # A class of creating a communication environment between the DQN model and the GameMiner environment (GAME_SOCKET_DUMMY.py)
 from Memory import Memory # A class of creating a batch in order to store experiences for the training process
@@ -33,13 +34,14 @@ INPUTNUM = 198 #The number of input values for the DQN model
 ACTIONNUM = 6  #The number of actions output from the DQN model
 MAP_MAX_X = 21 #Width of the Map
 MAP_MAX_Y = 9  #Height of the Map
+DEBUG = True
 
 # Initialize a DQN model and a memory batch for storing experiences
 DQNAgent = DQN(INPUTNUM, ACTIONNUM)
 memory = Memory(MEMORY_SIZE)
 
 # Initialize environment
-minerEnv = MinerEnv(HOST, PORT) #Creating a communication environment between the DQN model and the game environment (GAME_SOCKET_DUMMY.py)
+minerEnv = MinerGymEnv(HOST, PORT,debug=DEBUG) #Creating a communication environment between the DQN model and the game environment (GAME_SOCKET_DUMMY.py)
 minerEnv.start()  # Connect to the game
 
 train = False #The variable is used to indicate that the replay starts, and the epsilon starts decrease.
@@ -102,7 +104,8 @@ for episode_i in range(0, N_EPISODE):
             DQNAgent.save_model("TrainedModels/",
                                 "DQNmodel_" + now.strftime("%Y%m%d-%H%M") + "_ep" + str(episode_i + 1))
 
-        
+
+
         #Print the training information after the episode
         print('Episode %d ends. Number of steps is: %d. Accumulated Reward = %.2f. Epsilon = %.2f .Termination code: %d' % (
             episode_i + 1, step + 1, total_reward, DQNAgent.epsilon, terminate))
