@@ -4,6 +4,8 @@ import gym
 from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
+
+from Config import *
 from MinerEnv import MinerEnv, TreeID, TrapID, SwampID
 import cv2
 from prettytable import PrettyTable
@@ -18,6 +20,7 @@ class MinerGymEnv(gym.Env):
                                  PORT)
         self.minerEnv.start()
         self.action_space = spaces.Discrete(5)
+        self.observation_space = spaces.Discrete(198)
         self.debug= debug
         self.view = None
         self.ob = None
@@ -75,7 +78,15 @@ class MinerGymEnv(gym.Env):
         return self.minerEnv.get_state()
 
     def reset(self):
+
+        mapID = np.random.randint(1, 6)
+        posID_x = np.random.randint(MAP_MAX_X)
+        posID_y = np.random.randint(MAP_MAX_Y)
+        request = ("map" + str(mapID) + "," + str(posID_x) + "," + str(posID_y) + ",50,100")
+        self.minerEnv.send_map_info(request)
+        state= self.get_state()
         self.minerEnv.reset()
+        return state
 
     def render(self, mode='human'):
         if self.view is None:
@@ -88,7 +99,8 @@ class MinerGymEnv(gym.Env):
         mat[self.view == -3, 1] = 53
         mat[self.view == -2, 0] = 153
 
-        mat[self.view > 0, 1:3] = (255, 255)
+        mat[self.view > 0, 1:3] = np.array([self.view[self.view>0],self.view[self.view>0]]).T
+        remaining_gold = sum(self.view[self.view>0].flatten())
         t = PrettyTable(['ID', 'Score','Engergy','Free count'])
         for player in self.minerEnv.state.players:
             id = player['playerId']
@@ -112,11 +124,9 @@ class MinerGymEnv(gym.Env):
 
 
         blank =  np.zeros(shape=(h*38,w*38,3),dtype=np.uint8)
-        blank = self.draw_text(mat=blank,text=t.get_string())
-
-
-        # print(t.get_string(),end='\r')
-
+        z = 'Remaining gold: {}\n'.format(remaining_gold)
+        z += t.get_string()
+        blank = self.draw_text(mat=blank,text=z)
 
         mat = cv2.resize(mat, (w*38, h*38), interpolation=cv2.INTER_AREA)
         mat= np.concatenate((mat,blank),1)
@@ -130,4 +140,5 @@ class MinerGymEnv(gym.Env):
         self.minerEnv.end()
 
     def start(self):
+
         return self.minerEnv.start()

@@ -31,6 +31,7 @@ class MinerEnv:
             import traceback
             traceback.print_exc()
 
+
     def step(self, action):  # step process
         self.socket.send(action)  # send action to server
         try:

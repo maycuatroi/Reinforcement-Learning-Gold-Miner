@@ -60,10 +60,11 @@ class DQN:
       model.add(Dense(300))
       model.add(Activation('relu'))
       model.add(Dense(self.action_space))
-      model.add(Activation('linear'))    
-      #adam = optimizers.adam(lr=self.learning_rate)
+      model.add(Activation('linear'))
+      model.summary()
+      adam = optimizers.Adam(lr=self.learning_rate)
       sgd = optimizers.SGD(lr=self.learning_rate, decay=1e-6, momentum=0.95)
-      model.compile(optimizer = sgd,
+      model.compile(optimizer = adam,
               loss='mse')
       return model
   
