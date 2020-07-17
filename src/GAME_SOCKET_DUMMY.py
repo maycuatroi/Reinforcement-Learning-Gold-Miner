@@ -129,7 +129,7 @@ class GameSocket:
             bot.info.score = 0
             self.stepState.players.append(bot.info)
         self.userMatch.gameinfo.numberOfPlayers = len(self.stepState.players)
-        print("numberOfPlayers: ", self.userMatch.gameinfo.numberOfPlayers)
+        # print("numberOfPlayers: ", self.userMatch.gameinfo.numberOfPlayers)
 
     def reset(self, requests):  # load new game by given request: [map id (filename), posx, posy, initial energy]
         # load new map
@@ -241,7 +241,7 @@ class GameSocket:
 
         else:  # reset game
             requests = message.split(",")
-            print("Reset game: ", requests)
+            # print("Reset game: ", requests)
             self.reset(requests)
 
     def step_action(self, user, action):

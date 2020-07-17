@@ -19,7 +19,7 @@ class MinerGymEnv(gym.Env):
         self.minerEnv = MinerEnv(HOST,
                                  PORT)
         self.minerEnv.start()
-        self.action_space = spaces.Discrete(5)
+        self.action_space = spaces.Discrete(6)
         self.observation_space = spaces.Discrete(198)
         self.debug= debug
         self.view = None
@@ -44,7 +44,10 @@ class MinerGymEnv(gym.Env):
 
 
     def step(self, action):
-        self.minerEnv.step(str(action))
+        if type(action)!=int:
+            self.minerEnv.step(str(np.argmax(action)))
+        else:
+            self.minerEnv.step(str(action))
         self.status = self.minerEnv.get_state()
         reward = self.get_reward()
         ob = self.get_state()
@@ -76,6 +79,8 @@ class MinerGymEnv(gym.Env):
 
         self.view = view
         return self.minerEnv.get_state()
+
+
 
     def reset(self):
 

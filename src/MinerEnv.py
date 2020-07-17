@@ -31,7 +31,6 @@ class MinerEnv:
             import traceback
             traceback.print_exc()
 
-
     def step(self, action):  # step process
         self.socket.send(action)  # send action to server
         try:
@@ -59,28 +58,59 @@ class MinerEnv:
         DQNState = view.flatten().tolist()  # Flattening the map matrix to a vector
 
         # Add position and energy of agent to the DQNState
+
+        next_round_energy = self.get_next_round_engergy()
+        DQNState.append(next_round_energy)
         DQNState.append(self.state.x)
         DQNState.append(self.state.y)
+        DQNState.append(self.state.score)
         DQNState.append(self.state.energy)
+        # DQNState.append(self.state)
         # Add position of bots
         for player in self.state.players:
             if player["playerId"] != self.state.id:
                 DQNState.append(player["posx"])
                 DQNState.append(player["posy"])
+                energy = 0
+                score = 0
+                free_count = 0
+                if 'energy' in player:
+                    energy= player["energy"]
+                if 'score' in player:
+                    score = player["score"]
+                if 'free_count' in player:
+                    free_count = player["free_count"]
+                DQNState.append(energy)
+                DQNState.append(score)
+                DQNState.append(free_count)
 
         # Convert the DQNState from list to array for training
         DQNState = np.array(DQNState)
         return DQNState
 
+    def get_next_round_engergy(self):
+        free_count = 0
+        for p in self.state.players:
+            if p['playerId'] == self.state.id:
+                free_count = p['freeCount']
+        next_e = self.state.energy
+        for i in range(4 - free_count):
+            next_e += next_e / max(i,1)
+        return next_e
+
+    def dig_score(self):
+        pass
 
     def get_reward(self):
         # Calculate reward
         reward = 0
-        score_action = self.state.score - self.score_pre
+        score_action = self.state.score #- self.score_pre
         self.score_pre = self.state.score
         if score_action > 0:
             # If the DQN agent crafts golds, then it should obtain a positive reward (equal score_action)
             reward += score_action
+        if self.get_next_round_engergy() >= 50 or self.get_next_round_engergy() <= 0 :  # Do not stand while you have full energy :(
+            reward -= 10
 
         # If the DQN agent crashs into obstacels (Tree, Trap, Swamp), then it should be punished by a negative reward
         if self.state.mapInfo.get_obstacle(self.state.x, self.state.y) == TreeID:  # Tree
@@ -93,11 +123,9 @@ class MinerEnv:
         # If out of the map, then the DQN agent should be punished by a larger nagative reward.
         if self.state.status == State.STATUS_ELIMINATED_WENT_OUT_MAP:
             reward += -10
-
         # Run out of energy, then the DQN agent should be punished by a larger nagative reward.
         if self.state.status == State.STATUS_ELIMINATED_OUT_OF_ENERGY:
             reward += -10
-        # print ("reward",reward)
         return reward
 
     def check_terminate(self):
