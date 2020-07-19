@@ -75,7 +75,7 @@ class MinerEnv:
                 score = 0
                 free_count = 0
                 if 'energy' in player:
-                    energy= player["energy"]
+                    energy = player["energy"]
                 if 'score' in player:
                     score = player["score"]
                 if 'free_count' in player:
@@ -95,7 +95,7 @@ class MinerEnv:
                 free_count = p['freeCount']
         next_e = self.state.energy
         for i in range(4 - free_count):
-            next_e += next_e / max(i,1)
+            next_e += next_e / max(i, 1)
         return next_e
 
     def dig_score(self):
@@ -104,13 +104,18 @@ class MinerEnv:
     def get_reward(self):
         # Calculate reward
         reward = 0
-        score_action = self.state.score #- self.score_pre
+        score_action = self.state.score  # - self.score_pre
         self.score_pre = self.state.score
         if score_action > 0:
             # If the DQN agent crafts golds, then it should obtain a positive reward (equal score_action)
             reward += score_action
-        if self.get_next_round_engergy() >= 50 or self.get_next_round_engergy() <= 0 :  # Do not stand while you have full energy :(
-            reward -= 10
+            # print('Craft gold : {}'.format(score_action))
+        next_e = self.get_next_round_engergy()
+        if  next_e <= 0:  # Do not stand while you have full energy :(
+            reward -= 100
+
+        if next_e >= 50 and self.state.lastAction == 4:
+            reward-=100
 
         # If the DQN agent crashs into obstacels (Tree, Trap, Swamp), then it should be punished by a negative reward
         if self.state.mapInfo.get_obstacle(self.state.x, self.state.y) == TreeID:  # Tree
@@ -122,11 +127,11 @@ class MinerEnv:
 
         # If out of the map, then the DQN agent should be punished by a larger nagative reward.
         if self.state.status == State.STATUS_ELIMINATED_WENT_OUT_MAP:
-            reward += -10
+            reward += -100
         # Run out of energy, then the DQN agent should be punished by a larger nagative reward.
         if self.state.status == State.STATUS_ELIMINATED_OUT_OF_ENERGY:
-            reward += -10
-        return reward
+            reward += -100
+        return reward / 100.
 
     def check_terminate(self):
         # Checking the status of the game

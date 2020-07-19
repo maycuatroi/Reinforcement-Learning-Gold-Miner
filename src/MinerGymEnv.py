@@ -11,7 +11,7 @@ import cv2
 from prettytable import PrettyTable
 from PIL import ImageFont, ImageDraw, Image
 
-ACTIONS = {0: 'move left', 1: 'move right', 2: 'move up', 3: 'move down', 4: 'stand', 5: 'mining'}
+ACTIONS = {2: 'left', 3: 'right', 0: 'up', 1: 'down', 4: 'stand', 5: 'mining',6:'DIE'}
 font = ImageFont.truetype("Data/Roboto-Regular.ttf", 15)
 
 class MinerGymEnv(gym.Env):
@@ -23,6 +23,8 @@ class MinerGymEnv(gym.Env):
         self.observation_space = spaces.Discrete(198)
         self.debug= debug
         self.view = None
+        self.action = None
+        self.reward = None
         self.ob = None
         self.state = self.minerEnv.state
 
@@ -44,19 +46,19 @@ class MinerGymEnv(gym.Env):
 
 
     def step(self, action):
-        if type(action)!=int:
-            self.minerEnv.step(str(np.argmax(action)))
-        else:
-            self.minerEnv.step(str(action))
+        self.minerEnv.step(str(action))
         self.status = self.minerEnv.get_state()
         reward = self.get_reward()
         ob = self.get_state()
         episode_over = self.check_terminate()
         self.ob = ob
+        self.action = action
+        self.reward = reward
         if self.debug:
             self.render()
-
-        return ob, reward, episode_over, {}
+        # if episode_over:
+        #     print('Score : {}'.format(self.minerEnv.state.score))
+        return ob, reward, episode_over, {'score':self.minerEnv.state.score ,'action':action}
 
     def check_terminate(self):
         return self.minerEnv.check_terminate()
@@ -106,13 +108,15 @@ class MinerGymEnv(gym.Env):
 
         mat[self.view > 0, 1:3] = np.array([self.view[self.view>0],self.view[self.view>0]]).T
         remaining_gold = sum(self.view[self.view>0].flatten())
-        t = PrettyTable(['ID', 'Score','Engergy','Free count'])
+        t = PrettyTable(['ID', 'Score','Engergy','Free count','status','last action'])
         for player in self.minerEnv.state.players:
             id = player['playerId']
             score = player['score']
             engergy = player['energy']
             free_count = player['freeCount']
-
+            last_action = ACTIONS[player['lastAction']]
+            # last_action = ACTIONS[self.action]
+            status = player['status']
 
             x = player['posx']
             y = player['posy']
@@ -122,21 +126,22 @@ class MinerGymEnv(gym.Env):
 
             if player['playerId'] == self.minerEnv.state.id:
                 mat[x, y, :] = 255
-                t.add_row(['player', score,engergy,free_count])
+                t.add_row(['player', score,engergy,free_count,status,last_action])
             else:
                 mat[x, y, 2] = 153
-                t.add_row(['bot {}'.format(id), score,engergy,free_count])
+                t.add_row(['bot {}'.format(id), score,engergy,free_count,status,last_action])
 
 
-        blank =  np.zeros(shape=(h*38,w*38,3),dtype=np.uint8)
+        blank =  np.zeros(shape=(h*38,w*38+100,3),dtype=np.uint8)
         z = 'Remaining gold: {}\n'.format(remaining_gold)
         z += t.get_string()
+        z += '\nReward : {}'.format(self.reward)
         blank = self.draw_text(mat=blank,text=z)
 
         mat = cv2.resize(mat, (w*38, h*38), interpolation=cv2.INTER_AREA)
         mat= np.concatenate((mat,blank),1)
         cv2.imshow('game view', mat)
-        cv2.waitKey(1)
+        cv2.waitKey(100)
 
     def get_reward(self):
         return self.minerEnv.get_reward()
