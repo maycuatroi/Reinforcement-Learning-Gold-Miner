@@ -13,20 +13,34 @@ from PIL import ImageFont, ImageDraw, Image
 
 ACTIONS = {2: 'left', 3: 'right', 0: 'up', 1: 'down', 4: 'stand', 5: 'mining',6:'DIE'}
 font = ImageFont.truetype("Data/Roboto-Regular.ttf", 15)
+HEIGHT = 200
+WIDTH = 200
+N_CHANNELS=3
 
 class MinerGymEnv(gym.Env):
     def __init__(self, HOST, PORT, debug=False):
         self.minerEnv = MinerEnv(HOST,
                                  PORT)
-        self.minerEnv.start()
-        self.action_space = spaces.Discrete(6)
-        self.observation_space = spaces.Discrete(198)
+        self.action_space = spaces.Discrete(6,)
+
+
         self.debug= debug
         self.view = None
         self.action = None
         self.reward = None
         self.ob = None
         self.state = self.minerEnv.state
+
+        self.minerEnv.start()
+        self.start()
+        self.reset()
+        view = self.get_state()
+        try:
+            h,w,c =view.shape
+            self.observation_space = spaces.Box(low=0, high=1,
+                                                shape=(h, w, c), dtype=float)
+        except:
+            pass
 
     def print(self, message):
         if self.debug:
@@ -80,19 +94,18 @@ class MinerGymEnv(gym.Env):
                     view[i, j] = self.state.mapInfo.gold_amount(i, j)
 
         self.view = view
-        return self.minerEnv.get_state()
-
+        # return self.minerEnv.get_state()
+        return self.minerEnv.get_state().flatten()
 
 
     def reset(self):
-
         mapID = np.random.randint(1, 6)
         posID_x = np.random.randint(MAP_MAX_X)
         posID_y = np.random.randint(MAP_MAX_Y)
         request = ("map" + str(mapID) + "," + str(posID_x) + "," + str(posID_y) + ",50,100")
         self.minerEnv.send_map_info(request)
-        state= self.get_state()
         self.minerEnv.reset()
+        state=self.get_state()
         return state
 
     def render(self, mode='human'):
@@ -111,12 +124,21 @@ class MinerGymEnv(gym.Env):
         t = PrettyTable(['ID', 'Score','Engergy','Free count','status','last action'])
         for player in self.minerEnv.state.players:
             id = player['playerId']
-            score = player['score']
-            engergy = player['energy']
-            free_count = player['freeCount']
-            last_action = ACTIONS[player['lastAction']]
-            # last_action = ACTIONS[self.action]
-            status = player['status']
+            score = -1
+            engergy = -1
+            free_count = -1
+            last_action = 'DIED'
+            status = 'DIED'
+            if 'score' in player:
+                score = player['score']
+            if 'energy' in player:
+                engergy = player['energy']
+            if 'freeCount' in player:
+                free_count = player['freeCount']
+            if 'lastAction' in player:
+                last_action = ACTIONS[player['lastAction']]
+            if 'status' in player:
+                status = player['status']
 
             x = player['posx']
             y = player['posy']
@@ -141,7 +163,7 @@ class MinerGymEnv(gym.Env):
         mat = cv2.resize(mat, (w*38, h*38), interpolation=cv2.INTER_AREA)
         mat= np.concatenate((mat,blank),1)
         cv2.imshow('game view', mat)
-        cv2.waitKey(100)
+        cv2.waitKey(1)
 
     def get_reward(self):
         return self.minerEnv.get_reward()
@@ -150,5 +172,4 @@ class MinerGymEnv(gym.Env):
         self.minerEnv.end()
 
     def start(self):
-
         return self.minerEnv.start()

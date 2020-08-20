@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-from warnings import simplefilter 
+from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 
 import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import model_from_json
 from tensorflow.keras.layers import Dense, Activation
 from tensorflow.keras import optimizers
-from tensorflow.keras import backend as K
-import tensorflow as tf
+from tensorflow.compat.v1.keras import backend as K
+# import tensorflow as tf
 from random import random, randrange
 
 
@@ -46,9 +48,11 @@ class DQN:
       #Tensorflow GPU optimization
       config = tf.compat.v1.ConfigProto()
       config.gpu_options.allow_growth = True
-      self.sess = tf.compat.v1.Session(config=config)
-      K.set_session(sess)
-      self.sess.run( tf.compat.v1.global_variables_initializer()) 
+      self.sess = tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+      tf.compat.v1.keras.backend.set_session(self.sess)
+
+      # K.set_session(sess)
+      # self.sess.run(tf.compat.v1.global_variables_initializer())
       
     def create_model(self):
       #Creating the network
@@ -71,7 +75,7 @@ class DQN:
     
     def act(self,state):
       #Get the index of the maximum Q values      
-      a_max = np.argmax(self.model.predict(state.reshape(1,len(state))))      
+      a_max = np.argmax(self.model.predict(state.reshape(1,len(state))))
       if (random() < self.epsilon):
         a_chosen = randrange(self.action_space)
       else:
@@ -82,20 +86,23 @@ class DQN:
     def replay(self,samples,batch_size):
       inputs = np.zeros((batch_size, self.input_dim))
       targets = np.zeros((batch_size, self.action_space))
-      
+
+      ys = self.target_model.predict(samples[0])
+      qs =  self.target_model.predict(samples[3])
+      inputs[:] = samples[0]
       for i in range(0,batch_size):
-        state = samples[0][i,:]
+        # state = samples[0][i,:]
         action = samples[1][i]
         reward = samples[2][i]
         new_state = samples[3][i,:]
         done= samples[4][i]
         
-        inputs[i,:] = state
-        targets[i,:] = self.target_model.predict(state.reshape(1,len(state)))        
+        # inputs[i,:] = state
+        targets[i,:] = ys[i]
         if done:
           targets[i,action] = reward # if terminated, only equals reward
         else:
-          Q_future = np.max(self.target_model.predict(new_state.reshape(1,len(new_state))))
+          Q_future = np.max(qs[i])
           targets[i,action] = reward + Q_future * self.gamma
       #Training
       loss = self.model.train_on_batch(inputs, targets)  
@@ -120,7 +127,13 @@ class DQN:
         with open(path + model_name + ".json", "w") as json_file:
             json_file.write(model_json)
             # serialize weights to HDF5
-            self.model.save_weights(path + model_name + ".h5")
+            self.model.save_weights(path + model_name + "_model.h5")
+            self.target_model.save_weights(path + model_name + "_target_model.h5")
             print("Saved model to disk")
+
+    def load_model(self,path, model_name):
+        self.model.load_weights(path + model_name + "_model.h5")
+        self.target_model.load_weights(path + model_name + "_target_model.h5")
+        print("Model loaded")
  
 
